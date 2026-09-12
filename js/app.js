@@ -1,21 +1,17 @@
 /* Dòng tiền CK — dashboard ngành / cổ phiếu */
 (function () {
-  const PERIOD_BARS = { day: 1, week: 5, month: 20, quarter: 60 };
+  const PERIOD_BARS = { day: 1, week: 5, month: 20, year: 250 };
   const PERIOD_LABEL = {
     day: "Ngày",
     week: "Tuần",
     month: "Tháng",
-    quarter: "Quý",
-    m6: "Tháng 6",
-    m7: "Tháng 7",
-    m8: "Tháng 8",
+    year: "Năm",
   };
-  const CAL_MONTH = { m6: "2026-06", m7: "2026-07", m8: "2026-08" };
   const CAFEF_URLS = [
     "https://cafef.vn/du-lieu/Ajax/PageNew/DataHistory/PriceHistory.ashx",
     "https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx",
   ];
-  const CACHE_KEY = "dtck_cache_v2";
+  const CACHE_KEY = "dtck_cache_v3";
 
   function pad2(n) {
     return String(n).padStart(2, "0");
@@ -102,16 +98,12 @@
   }
 
   function barsForPeriod() {
-    return PERIOD_BARS[state.period] || 1;
-  }
-
-  function calKey() {
-    return CAL_MONTH[state.period] || null;
-  }
-
-  function monthBlock(key) {
-    const months = (state.data && state.data.months) || {};
-    return months[key] || { stocks: {}, indices: {} };
+    const cap = PERIOD_BARS[state.period] || 1;
+    if (state.period === "year") {
+      const vni = ((state.data && state.data.indices && state.data.indices.VNINDEX) || {}).h || [];
+      return Math.max(vni.length || 0, 1);
+    }
+    return cap;
   }
 
   function sliceH(h, n) {
@@ -155,30 +147,6 @@
   function computeStocks() {
     const q = state.query.trim().toUpperCase();
     const rows = [];
-    const mk = calKey();
-    if (mk) {
-      const block = monthBlock(mk);
-      Object.keys(state.data.stocks).forEach((sym) => {
-        const rec = state.data.stocks[sym];
-        const m = (block.stocks || {})[sym];
-        if (!m) return;
-        if (q && !sym.includes(q) && !(rec.ind || "").toUpperCase().includes(q)) return;
-        rows.push({
-          sym,
-          ind: rec.ind,
-          last: { d: m.to, c: m.px1, pct: m.pct },
-          pct: m.pct,
-          dayPct: m.pct,
-          val: m.val,
-          net: m.net,
-          vol: m.vol,
-          px: m.px1,
-          h: rec.h || [],
-          sessions: m.n,
-        });
-      });
-      return rows;
-    }
     const n = barsForPeriod();
     Object.keys(state.data.stocks).forEach((sym) => {
       const rec = state.data.stocks[sym];
@@ -239,12 +207,6 @@
     return h[0] ? h[0].d : "—";
   }
 
-  function monthIndex(key) {
-    const mk = calKey();
-    if (!mk) return null;
-    return (monthBlock(mk).indices || {})[key] || null;
-  }
-
   function renderIndices() {
     const keys = [
       ["VNINDEX", "VN-Index"],
@@ -255,11 +217,10 @@
     const n = barsForPeriod();
     $("idxList").innerHTML = keys
       .map(([k, label]) => {
-        const mi = monthIndex(k);
         const h = indexSeries(k);
         const last = lastSession(h);
-        const pct = mi ? mi.pct : periodChange(h, n);
-        const px = mi ? mi.px1 : last ? last.c : 0;
+        const pct = periodChange(h, n);
+        const px = last ? last.c : 0;
         const c = clsChg(pct);
         return `<div class="idx-row">
           <div class="idx-name">${label}</div>
@@ -273,11 +234,10 @@
   function renderKpis(stocks, inds) {
     const vni = indexSeries("VNINDEX");
     const n = barsForPeriod();
-    const mi = monthIndex("VNINDEX");
-    const pct = mi ? mi.pct : periodChange(vni, n);
+    const pct = periodChange(vni, n);
     const last = lastSession(vni);
-    const px = mi ? mi.px1 : last && last.c;
-    const when = mi ? (mi.from + " → " + mi.to + " · " + mi.n + " phiên") : ("phiên " + (last ? last.d : "—"));
+    const px = last && last.c;
+    const when = "phiên " + (last ? last.d : "—");
     const br = breadth(stocks);
     const totalVal = stocks.reduce((s, x) => s + x.val, 0);
     const net = stocks.reduce((s, x) => s + x.net, 0);
@@ -297,7 +257,7 @@
       <div class="kpi">
         <div class="lab">Dòng tiền ròng (GT tăng − GT giảm)</div>
         <div class="val ${clsChg(net)}">${net >= 0 ? "+" : ""}${fmtTy(net)}</div>
-        <div class="sub">Phân bố theo chiều giá các mã</div>
+        <div class="sub">Phân bổ theo chiều giá các mã</div>
       </div>
       <div class="kpi">
         <div class="lab">Ngành dẫn dòng</div>
@@ -325,7 +285,6 @@
     const pieCtx = $("pieChart");
     const barCtx = $("barChart");
     if (!pieCtx || !window.Chart) return;
-
     state.charts.pie = new Chart(pieCtx, {
       type: "doughnut",
       data: {
@@ -341,7 +300,6 @@
         cutout: "58%",
       },
     });
-
     state.charts.bars = new Chart(barCtx, {
       type: "bar",
       data: {
@@ -465,7 +423,6 @@
     renderStockTable(g.stocks, "stkBodyInd");
     const cap = $("stkCaptionInd");
     if (cap) cap.textContent = "Cổ phiếu trong ngành " + g.name;
-
     destroyChart("indFlow");
     const ctx = $("indFlowChart");
     if (ctx && window.Chart) {
@@ -491,49 +448,9 @@
     }
   }
 
-  function monthSummary(key) {
-    const block = monthBlock(key);
-    const stocks = Object.values(block.stocks || {});
-    const val = stocks.reduce((s, x) => s + (Number(x.val) || 0), 0);
-    const net = stocks.reduce((s, x) => s + (Number(x.net) || 0), 0);
-    const vni = (block.indices || {}).VNINDEX || {};
-    return {
-      key,
-      n: stocks.length,
-      sessions: vni.n || (stocks[0] && stocks[0].n) || 0,
-      from: vni.from || (stocks[0] && stocks[0].from) || "",
-      to: vni.to || (stocks[0] && stocks[0].to) || "",
-      val,
-      net,
-      pct: vni.pct || 0,
-      px1: vni.px1 || 0,
-    };
-  }
-
-  function renderMonthCompare() {
-    const el = $("monthCompare");
-    if (!el) return;
-    const map = { "2026-06": "m6", "2026-07": "m7", "2026-08": "m8" };
-    const labels = { "2026-06": "Tháng 6/2026", "2026-07": "Tháng 7/2026", "2026-08": "Tháng 8/2026" };
-    el.innerHTML = ["2026-06", "2026-07", "2026-08"]
-      .map((key) => {
-        const s = monthSummary(key);
-        const period = map[key];
-        const active = state.period === period ? " active" : "";
-        return `<div class="month-card${active}" data-month-period="${period}">
-          <div class="m-name">${labels[key]} · ${s.sessions} phiên</div>
-          <div class="m-val">${fmtTy(s.val)}</div>
-          <div class="m-sub ${clsChg(s.net)}">Ròng ${s.net >= 0 ? "+" : ""}${fmtTy(s.net)}</div>
-          <div class="m-sub ${clsChg(s.pct)}">VN-Index ${signTxt(s.pct)}% · ${s.from} → ${s.to}</div>
-        </div>`;
-      })
-      .join("");
-  }
-
   function renderMarket(inds, stocks) {
     $("viewMarket").style.display = "block";
     $("viewIndustry").style.display = "none";
-    renderMonthCompare();
     renderFlowCharts(stocks);
     renderIndexChart();
     renderIndustryTable(inds);
@@ -579,21 +496,19 @@
     const n = barsForPeriod();
     const h = rec.h || [];
     const last = h[0] || {};
-    const mk = calKey();
-    const m = mk ? ((monthBlock(mk).stocks || {})[sym] || null) : null;
-    const pct = m ? m.pct : periodChange(h, n);
-    const val = m ? m.val : periodValue(h, n);
-    const net = m ? m.net : periodNet(h, n);
-    const vol = m ? m.vol : periodVol(h, n);
-    const px = m ? m.px1 : last.c;
+    const pct = periodChange(h, n);
+    const val = periodValue(h, n);
+    const net = periodNet(h, n);
+    const vol = periodVol(h, n);
+    const px = last.c;
     $("modalBg").classList.add("show");
     $("modalTitle").textContent = sym + " · " + rec.ind;
     $("modalKv").innerHTML = `
-      <div><div class="k">Giá cuối kỳ</div><strong>${fmtNum(px, 2)}</strong></div>
+      <div><div class="k">Giá</div><strong>${fmtNum(px, 2)}</strong></div>
       <div><div class="k">% kỳ ${PERIOD_LABEL[state.period]}</div><strong class="${clsChg(pct)}">${signTxt(pct)}%</strong></div>
       <div><div class="k">GTGD kỳ</div><strong>${fmtTy(val)}</strong></div>
       <div><div class="k">Dòng tiền ròng</div><strong class="${clsChg(net)}">${fmtTy(net)}</strong></div>
-      <div><div class="k">Cao / Thấp phiên gần nhất</div><strong>${fmtNum(last.h, 2)} / ${fmtNum(last.l, 2)}</strong></div>
+      <div><div class="k">Cao / Thấp phiên</div><strong>${fmtNum(last.h, 2)} / ${fmtNum(last.l, 2)}</strong></div>
       <div><div class="k">Khối lượng kỳ</div><strong>${fmtNum(vol, 0)}</strong></div>`;
     destroyChart("modal");
     const ctx = $("modalChart");
@@ -714,7 +629,7 @@
     renderStatus();
     let ok = 0;
     try {
-      const pages = 2;
+      const pages = state.period === "year" ? 10 : 2;
       const idxKeys = ["VNINDEX", "HNX-INDEX", "UPCOM-INDEX", "VN30INDEX"];
       for (const k of idxKeys) {
         const h = await fetchSymbol(k, pages);
@@ -798,19 +713,6 @@
       render();
     });
     $("btnRefresh").addEventListener("click", refreshLive);
-    const monthBox = $("monthCompare");
-    if (monthBox) {
-      monthBox.addEventListener("click", (e) => {
-        const card = e.target.closest("[data-month-period]");
-        if (!card) return;
-        const p = card.getAttribute("data-month-period");
-        state.period = p;
-        document.querySelectorAll("[data-period]").forEach((b) =>
-          b.classList.toggle("active", b.getAttribute("data-period") === p)
-        );
-        render();
-      });
-    }
     $("indBody").addEventListener("click", (e) => {
       const tr = e.target.closest("tr[data-ind]");
       if (!tr) return;
@@ -841,23 +743,8 @@
     });
   }
 
-  function mergeSnapshotMonths(data) {
-    const snap = window.DT_SNAPSHOT || {};
-    if (!data.months || !Object.keys(data.months).length) {
-      data.months = JSON.parse(JSON.stringify(snap.months || {}));
-    } else {
-      ["2026-06", "2026-07", "2026-08"].forEach((k) => {
-        if (!data.months[k] && snap.months && snap.months[k]) {
-          data.months[k] = JSON.parse(JSON.stringify(snap.months[k]));
-        }
-      });
-    }
-    if (!data.monthLabels) data.monthLabels = snap.monthLabels || {};
-    return data;
-  }
-
   function boot() {
-    state.data = mergeSnapshotMonths(loadCache() || cloneSnapshot());
+    state.data = loadCache() || cloneSnapshot();
     bind();
     render();
     refreshLive();
