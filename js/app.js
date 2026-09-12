@@ -3,6 +3,11 @@
   const PERIOD_BARS = { day: 1, week: 5, month: 20, quarter: 60 };
   const PERIOD_LABEL = { day: "Ngay", week: "Tuan", month: "Thang", quarter: "Quy" };
   const CAFEF = "https://cafef.vn/du-lieu/Ajax/PageNew/DataHistory/PriceHistory.ashx";
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function cafefEndDate() {
+    const d = new Date();
+    return pad2(d.getMonth() + 1) + "/" + pad2(d.getDate()) + "/" + d.getFullYear();
+  }
   const state = { period: "day", view: "market", industry: null, query: "", data: null, live: false, refreshing: false, charts: {} };
   const $ = (id) => document.getElementById(id);
   function cloneSnapshot() {
@@ -153,7 +158,7 @@
     $("stkCaption").textContent = "Top co phieu theo GTGD";
   }
   function renderStatus() {
-    const src = state.live ? "CafeF (da lam moi)" : "CafeF";
+    const src = state.live ? "CafeF (da lam moi)" : "CafeF snapshot";
     $("statusText").textContent = src + " · chot " + latestDate();
     $("statusDot").className = "dot" + (state.live ? "" : " warn");
     $("periodLabel").textContent = PERIOD_LABEL[state.period];
@@ -186,9 +191,15 @@
   async function fetchSymbol(sym, pages) {
     const out = [], seen = {};
     for (let p = 1; p <= pages; p++) {
-      const url = CAFEF + "?Symbol=" + encodeURIComponent(sym) + "&StartDate=01/01/2026&EndDate=12/31/2026&PageIndex=" + p + "&PageSize=20";
+      const url = CAFEF + "?Symbol=" + encodeURIComponent(sym) + "&StartDate=01/01/2026&EndDate=" + cafefEndDate() + "&PageIndex=" + p + "&PageSize=20";
       const res = await fetch(url); if (!res.ok) break;
-      const js = await res.json(); const rows = (js.Data && js.Data.Data) || []; if (!rows.length) break;
+      const js = await res.json(); const wrap = js.Data || {}; const rows = wrap.Data || [];
+      if (!rows.length) {
+        if (p === 1 && wrap.ClosePriceIndex) {
+          out.push({ d: wrap.DateIndex, c: wrap.ClosePriceIndex, o: wrap.ClosePriceIndex, h: wrap.ClosePriceIndex, l: wrap.ClosePriceIndex, chg: wrap.ChgIndex || 0, pct: wrap.PctIndex || 0, vol: 0, val: 0 });
+        }
+        break;
+      }
       rows.forEach((r) => { const row = parseCafeFRow(r); if (row.d && !seen[row.d]) { seen[row.d] = 1; out.push(row); } });
       if (rows.length < 20) break;
     }
@@ -198,22 +209,23 @@
     if (state.refreshing) return; state.refreshing = true;
     $("btnRefresh").disabled = true; $("btnRefresh").textContent = "Dang tai...";
     try {
-      const pages = state.period === "quarter" ? 4 : state.period === "month" ? 2 : 1;
+      const pages = 1;
       const idxKeys = ["VNINDEX", "HNX-INDEX", "UPCOM-INDEX", "VN30INDEX"];
       for (let i = 0; i < idxKeys.length; i++) {
         const k = idxKeys[i], h = await fetchSymbol(k, pages); if (!h.length) continue;
         const storeKey = k === "VN30INDEX" ? "VN30" : k;
         if (!state.data.indices[storeKey]) state.data.indices[storeKey] = { name: storeKey, h: [] };
         state.data.indices[storeKey].h = h;
+        render();
       }
       const syms = Object.keys(state.data.stocks);
-      for (let i = 0; i < syms.length; i += 6) {
-        const slice = syms.slice(i, i + 6);
+      for (let i = 0; i < syms.length; i += 8) {
+        const slice = syms.slice(i, i + 8);
         await Promise.all(slice.map(async (sym) => { try { const h = await fetchSymbol(sym, pages); if (h.length) state.data.stocks[sym].h = h; } catch (e) {} }));
         render();
       }
       state.live = true; state.data.fetchedAt = new Date().toISOString();
-    } catch (e) { console.warn(e); alert("Khong lam moi duoc CafeF. Dung ban nhung."); }
+    } catch (e) { console.warn(e); }
     finally { state.refreshing = false; $("btnRefresh").disabled = false; $("btnRefresh").textContent = "Lam moi CafeF"; render(); }
   }
   function bind() {
@@ -240,7 +252,7 @@
   }
   function boot() {
     state.data = cloneSnapshot(); bind(); render();
-    if (!indexSeries("VNINDEX").length) refreshLive();
+    refreshLive();
   }
   document.addEventListener("DOMContentLoaded", boot);
 })();
