@@ -22,6 +22,7 @@
       </div>
       <nav class="nav">
         <button class="nav-btn active" data-view="market">Thị trường</button>
+        <button class="nav-btn" data-view="macro">Vĩ mô</button>
         <button class="nav-btn" data-view="industry">Ngành nghề</button>
         <button class="nav-btn" data-view="stocks">Cổ phiếu</button>
       </nav>
@@ -87,7 +88,7 @@
           <div class="grid-2">
             <div class="card">
               <div class="card-head">
-                <h3>Phân bố dòng tiền</h3>
+                <h3>Phân bổ dòng tiền</h3>
                 <span class="hint">GTGD theo chiều giá</span>
               </div>
               <div class="chart-box sm"><canvas id="barChart"></canvas></div>
@@ -149,6 +150,42 @@
           </div>
         </section>
 
+        <section id="viewMacro" style="display:none">
+          <div class="kpis" id="macroKpis"></div>
+          <div class="card">
+            <div class="card-head">
+              <h3 id="macroTitle">Luận điểm vĩ mô</h3>
+              <span class="hint" id="macroAsOf"></span>
+            </div>
+            <p class="note" id="macroStance"></p>
+            <div class="macro-hl" id="macroHl"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>Cổ phiếu chịu tác động</h3>
+              <span class="hint">Bấm mã để xem nến CafeF</span>
+            </div>
+            <div class="macro-filters" id="macroFilters"></div>
+            <div class="scroll">
+              <table class="stk-table">
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Theme</th>
+                    <th>Góc nhìn</th>
+                    <th>Luận điểm</th>
+                    <th class="num">Giá</th>
+                    <th class="num">% kỳ</th>
+                    <th class="num">GTGD</th>
+                  </tr>
+                </thead>
+                <tbody id="macroBody"></tbody>
+              </table>
+            </div>
+            <p class="note" id="macroSrc" style="margin-top:10px"></p>
+          </div>
+        </section>
+
         <section id="viewIndustry" style="display:none">
           <div class="card">
             <button class="back" id="btnBack">← Về thị trường</button>
@@ -196,6 +233,7 @@
 
   <script src="js/data.js"></script>
   <script src="js/vn100.js"></script>
+  <script src="js/macro.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
