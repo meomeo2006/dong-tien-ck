@@ -11,7 +11,7 @@
     "https://cafef.vn/du-lieu/Ajax/PageNew/DataHistory/PriceHistory.ashx",
     "https://s.cafef.vn/Ajax/PageNew/DataHistory/PriceHistory.ashx",
   ];
-  const CACHE_KEY = "dtck_cache_v3";
+  const CACHE_KEY = "dtck_cache_v4";
 
   function pad2(n) {
     return String(n).padStart(2, "0");
@@ -57,6 +57,18 @@
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     } catch (e) {}
+  }
+
+  function hasBars(data) {
+    const vni = data && data.indices && data.indices.VNINDEX && data.indices.VNINDEX.h;
+    return !!(vni && vni.length);
+  }
+
+  function parseDMY(s) {
+    if (!s) return 0;
+    const p = String(s).split("/");
+    if (p.length !== 3) return 0;
+    return Date.UTC(+p[2], +p[1] - 1, +p[0]);
   }
 
   function fmtNum(n, d) {
@@ -250,7 +262,7 @@
         <div class="sub ${clsChg(pct)}">${signTxt(pct)}% · ${when}</div>
       </div>
       <div class="kpi">
-        <div class="lab">Giá trị giao dịch (mẫu ${stocks.length} mã)</div>
+        <div class="lab">Giá trị giao dịch (VN100 · ${stocks.length} mã)</div>
         <div class="val">${fmtTy(totalVal)}</div>
         <div class="sub">Tổng GTGD trong kỳ đang chọn</div>
       </div>
@@ -285,6 +297,7 @@
     const pieCtx = $("pieChart");
     const barCtx = $("barChart");
     if (!pieCtx || !window.Chart) return;
+
     state.charts.pie = new Chart(pieCtx, {
       type: "doughnut",
       data: {
@@ -300,6 +313,7 @@
         cutout: "58%",
       },
     });
+
     state.charts.bars = new Chart(barCtx, {
       type: "bar",
       data: {
@@ -423,6 +437,7 @@
     renderStockTable(g.stocks, "stkBodyInd");
     const cap = $("stkCaptionInd");
     if (cap) cap.textContent = "Cổ phiếu trong ngành " + g.name;
+
     destroyChart("indFlow");
     const ctx = $("indFlowChart");
     if (ctx && window.Chart) {
@@ -474,7 +489,7 @@
   function render() {
     if (!state.data) return;
     const stocks = computeStocks();
-    const inds = computeIndustries(state.query ? computeStocksRaw() : stocks);
+    const inds = state.query ? computeIndustries(computeStocksRaw()) : computeIndustries(stocks);
     renderIndices();
     renderKpis(computeStocksRaw(), inds);
     renderStatus();
@@ -508,7 +523,7 @@
       <div><div class="k">% kỳ ${PERIOD_LABEL[state.period]}</div><strong class="${clsChg(pct)}">${signTxt(pct)}%</strong></div>
       <div><div class="k">GTGD kỳ</div><strong>${fmtTy(val)}</strong></div>
       <div><div class="k">Dòng tiền ròng</div><strong class="${clsChg(net)}">${fmtTy(net)}</strong></div>
-      <div><div class="k">Cao / Thấp phiên</div><strong>${fmtNum(last.h, 2)} / ${fmtNum(last.l, 2)}</strong></div>
+      <div><div class="k">Cao / Thấp phiên gần nhất</div><strong>${fmtNum(last.h, 2)} / ${fmtNum(last.l, 2)}</strong></div>
       <div><div class="k">Khối lượng kỳ</div><strong>${fmtNum(vol, 0)}</strong></div>`;
     destroyChart("modal");
     const ctx = $("modalChart");
