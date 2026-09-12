@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dòng tiền CK — Ngành nghề &amp; cổ phiếu Việt Nam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">DT</div>
+        <div>
+          <h1>Dòng tiền CK</h1>
+          <p>Ngành nghề · cổ phiếu · VN</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-btn active" data-view="market">Thị trường</button>
+        <button class="nav-btn" data-view="industry">Ngành nghề</button>
+        <button class="nav-btn" data-view="stocks">Cổ phiếu</button>
+      </nav>
+      <div class="period-box">
+        <button class="period-btn active" data-period="day">Ngày</button>
+        <button class="period-btn" data-period="week">Tuần</button>
+        <button class="period-btn" data-period="month">Tháng</button>
+        <button class="period-btn" data-period="quarter">Quý</button>
+      </div>
+      <div class="spacer"></div>
+      <input class="search" id="search" placeholder="Tìm mã hoặc ngành…" />
+      <button class="btn" id="btnRefresh">Làm mới CafeF</button>
+      <div class="status">
+        <span class="dot warn" id="statusDot"></span>
+        <span id="statusText">Đang tải…</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="side">
+        <div class="card">
+          <div class="card-head">
+            <h3>Chỉ số</h3>
+            <span class="hint" id="periodLabel">Ngày</span>
+          </div>
+          <div class="idx-list" id="idxList"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Cách đọc dòng tiền</h3></div>
+          <p class="note">
+            <strong>GTGD</strong> = giá trị khớp lệnh (tỷ đồng) cộng dồn trong kỳ
+            Ngày / Tuần (5 phiên) / Tháng (20 phiên) / Quý (tối đa dữ liệu có).
+            <br /><br />
+            <strong>Dòng tiền ròng</strong> ≈ GTGD mã tăng − GTGD mã giảm
+            (phân bổ dòng tiền kiểu FireAnt).
+            <br /><br />
+            Nguồn: API lịch sử công khai CafeF. Không phải dữ liệu realtime của FireAnt.
+            Bấm <em>Làm mới CafeF</em> để kéo thêm phiên.
+          </p>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section id="viewMarket">
+          <div class="kpis" id="kpis"></div>
+
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-head">
+                <h3>VN-Index</h3>
+                <span class="hint">20 phiên gần nhất</span>
+              </div>
+              <div class="chart-box sm"><canvas id="vniChart"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>Số mã tăng / giảm</h3>
+                <div class="legend" id="kpiBreadth"></div>
+              </div>
+              <div class="chart-box sm"><canvas id="pieChart"></canvas></div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head">
+                <h3>Phân bổ dòng tiền</h3>
+                <span class="hint">GTGD theo chiều giá</span>
+              </div>
+              <div class="chart-box sm"><canvas id="barChart"></canvas></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h3>Dòng tiền theo ngành</h3>
+                <span class="hint">Bấm hàng để xem chi tiết</span>
+              </div>
+              <div class="scroll" style="max-height:260px">
+                <table class="ind-table">
+                  <thead>
+                    <tr>
+                      <th>Ngành</th>
+                      <th class="num">%</th>
+                      <th class="num">GTGD</th>
+                      <th class="num">Ròng</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="indBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3>Bản đồ nhiệt cổ phiếu</h3>
+              <div class="legend">
+                <span><i class="swatch" style="background:#3dd68c"></i>Tăng</span>
+                <span><i class="swatch" style="background:#f6465d"></i>Giảm</span>
+                <span>Ô to theo GTGD · màu theo %</span>
+              </div>
+            </div>
+            <div class="heat" id="heat"></div>
+          </div>
+
+          <div class="card" id="stkCard">
+            <div class="card-head">
+              <h3 id="stkCaption">Cổ phiếu</h3>
+              <span class="hint">Bấm mã để xem chi tiết</span>
+            </div>
+            <div class="scroll">
+              <table class="stk-table">
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Ngành</th>
+                    <th class="num">Giá</th>
+                    <th class="num">% kỳ</th>
+                    <th class="num">GTGD (tỷ)</th>
+                    <th class="num">Ròng (tỷ)</th>
+                  </tr>
+                </thead>
+                <tbody id="stkBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="viewIndustry" style="display:none">
+          <div class="card">
+            <button class="back" id="btnBack">← Về thị trường</button>
+            <div class="detail-title">
+              <h2 id="indTitle">Ngành</h2>
+            </div>
+            <p class="note" id="indMeta"></p>
+            <div class="chart-box"><canvas id="indFlowChart"></canvas></div>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <div class="card-head">
+              <h3 id="stkCaptionInd">Cổ phiếu trong ngành</h3>
+            </div>
+            <div class="scroll">
+              <table class="stk-table">
+                <thead>
+                  <tr>
+                    <th>Mã</th>
+                    <th>Ngành</th>
+                    <th class="num">Giá</th>
+                    <th class="num">% kỳ</th>
+                    <th class="num">GTGD (tỷ)</th>
+                    <th class="num">Ròng (tỷ)</th>
+                  </tr>
+                </thead>
+                <tbody id="stkBodyInd"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modalBg">
+    <div class="modal">
+      <div class="card-head">
+        <h3 id="modalTitle">Mã</h3>
+        <button class="btn" id="modalClose">Đóng</button>
+      </div>
+      <div class="kv" id="modalKv"></div>
+      <div class="chart-box sm"><canvas id="modalChart"></canvas></div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
