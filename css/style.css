@@ -96,9 +96,7 @@ body {
   flex: 1;
 }
 
-.side {
-  display: flex; flex-direction: column; gap: 12px;
-}
+.side { display: flex; flex-direction: column; gap: 12px; }
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -152,6 +150,18 @@ body {
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .grid-3 { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 14px; }
+.month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.month-card {
+  border: 1px solid var(--line);
+  background: var(--bg-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.month-card.active { outline: 1px solid #3b82f6; background: #152033; }
+.month-card .m-name { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.month-card .m-val { font-size: 18px; font-weight: 750; letter-spacing: -0.03em; }
+.month-card .m-sub { font-size: 12px; margin-top: 4px; }
 
 .chart-box { position: relative; height: 240px; }
 .chart-box.sm { height: 200px; }
@@ -192,9 +202,7 @@ body {
   font-size: 11px; color: #c5d0dc; margin-bottom: 6px;
   display: flex; justify-content: space-between;
 }
-.tiles {
-  display: flex; flex-wrap: wrap; gap: 4px;
-}
+.tiles { display: flex; flex-wrap: wrap; gap: 4px; }
 .tile {
   border-radius: 6px; padding: 8px 8px 6px;
   min-width: 64px; flex: 1 1 auto;
@@ -239,7 +247,7 @@ body {
 
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 1fr; }
-  .kpis, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .kpis, .grid-2, .grid-3, .month-grid { grid-template-columns: 1fr; }
   .search { width: 140px; }
 }
 @media (max-width: 720px) {

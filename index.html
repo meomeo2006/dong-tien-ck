@@ -28,8 +28,9 @@
       <div class="period-box">
         <button class="period-btn active" data-period="day">Ngày</button>
         <button class="period-btn" data-period="week">Tuần</button>
-        <button class="period-btn" data-period="month">Tháng</button>
-        <button class="period-btn" data-period="quarter">Quý</button>
+        <button class="period-btn" data-period="m6">T6</button>
+        <button class="period-btn" data-period="m7">T7</button>
+        <button class="period-btn" data-period="m8">T8</button>
       </div>
       <div class="spacer"></div>
       <input class="search" id="search" placeholder="Tìm mã hoặc ngành…" />
@@ -52,14 +53,13 @@
         <div class="card">
           <div class="card-head"><h3>Cách đọc dòng tiền</h3></div>
           <p class="note">
-            <strong>GTGD</strong> = giá trị khớp lệnh (tỷ đồng) cộng dồn trong kỳ
-            Ngày / Tuần (5 phiên) / Tháng (20 phiên) / Quý (tối đa dữ liệu có).
+            <strong>GTGD</strong> = giá trị khớp lệnh (tỷ đồng) cộng dồn trong kỳ.
+            Ngày = 1 phiên, Tuần = 5 phiên.
+            <strong>T6 / T7 / T8</strong> = tổng cả tháng dương lịch 6, 7, 8/2026.
             <br /><br />
-            <strong>Dòng tiền ròng</strong> ≈ GTGD mã tăng − GTGD mã giảm
-            (phân bổ dòng tiền kiểu FireAnt).
+            <strong>Dòng tiền ròng</strong> ≈ GTGD mã tăng − GTGD mã giảm trong kỳ.
             <br /><br />
-            Nguồn: API lịch sử công khai CafeF. Không phải dữ liệu realtime của FireAnt.
-            Bấm <em>Làm mới CafeF</em> để kéo thêm phiên.
+            Nguồn: CafeF lịch sử. FireAnt REST không gọi được từ GitHub Pages.
           </p>
         </div>
       </aside>
@@ -67,6 +67,13 @@
       <main class="main">
         <section id="viewMarket">
           <div class="kpis" id="kpis"></div>
+          <div class="card">
+            <div class="card-head">
+              <h3>Dòng tiền 3 tháng</h3>
+              <span class="hint">Tổng hợp T6 · T7 · T8 / 2026 · bấm ô để lọc</span>
+            </div>
+            <div class="month-grid" id="monthCompare"></div>
+          </div>
 
           <div class="grid-3">
             <div class="card">
@@ -88,7 +95,7 @@
           <div class="grid-2">
             <div class="card">
               <div class="card-head">
-                <h3>Phân bổ dòng tiền</h3>
+                <h3>Phân bố dòng tiền</h3>
                 <span class="hint">GTGD theo chiều giá</span>
               </div>
               <div class="chart-box sm"><canvas id="barChart"></canvas></div>
