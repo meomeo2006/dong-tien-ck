@@ -14,8 +14,8 @@ Site: https://meomeo2006.github.io/dong-tien-ck/
 ## Nguồn dữ liệu
 
 - CafeF PriceHistory (công khai): OHLCV + GTGD từng mã / chỉ số
-- Snapshot nhúng trong `js/data.js` để hiện số ngay khi mở trang
-- Live cache `localStorage` (`dtck_cache_v3`)
+- Snapshot nhúng trong `js/data.js`: **VN100** (100 mã), 20 phiên gần nhất chốt 11/09/2026
+- Live cache `localStorage` (`dtck_cache_v4`)
 
 ## Công thức
 
